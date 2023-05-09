@@ -3,10 +3,11 @@
 // these files can get really large so we need to increase the limit
 #pragma pattern_limit 0x4000
 
-#include <std/io.pat>
-
 #include <fb/obfsheader.pat>
 #include <fb/guid.pat>
+
+#include <std/io.pat>
+#include <std/mem.pat>
 
 namespace fb
 {
@@ -15,9 +16,9 @@ namespace fb
         bitfield Flags
         {
             unused : 29;
-            bool HasHuffmanTable : 1;
-            bool HasBaseChunks : 1;
-            bool HasBaseBundles : 1;
+            bool hasHuffmanTable : 1;
+            bool hasBaseChunks : 1;
+            bool hasBaseBundles : 1;
         };
 
         struct Header
@@ -42,7 +43,7 @@ namespace fb
 
             be Flags flags;
 
-            if (flags.HasHuffmanTable)
+            if (flags.hasHuffmanTable)
             {
                 // newer games use a huffman table to compress the strings
                 be u32 stringCount;
@@ -57,20 +58,69 @@ namespace fb
             }
         };
 
+        fn DecodeHuffmanString(u32 bitIndex)
+        {
+            str name = "";
+            while (true)
+            {
+                // this is a bug in the pattern language, a while loop increases the times u have to call parent
+                // might be fixed in a future version so this would need to be updated
+                s32 value = parent.parent.parent.header.huffmanNodeCount / 2 - 1;
+                while (true)
+                {
+                    u32 childIndex = (parent.parent.parent.parent.stringTable[bitIndex / 32] >> (bitIndex % 32)) & 1;
+                    value = parent.parent.parent.parent.huffmanTable[value * 2 + childIndex];
+                    bitIndex = bitIndex + 1;
+                    if (value < 0)
+                    {
+                        break;
+                    }
+                }
+                name = name + str(-1 - value);
+                if (-1 -value == 0)
+                {
+                    break;
+                }
+            }
+            return name;
+        };
+
+        struct HuffmanStringHelper
+        {
+            std::print("{}", parent.name);
+            str name = parent.name;
+        } [[format_read("fb::BinarySuperBundleToc::format_huffman_string_helper")]];
+
+        fn format_huffman_string_helper(ref HuffmanStringHelper helper)
+        {
+            // TODO: this cant find the variable for some reason
+            return helper.name;
+        };
+
+        bitfield FlagAndSize
+        {
+            unknown : 1;
+            isStoredInToc : 1;
+            size : 30;
+        };
+
         struct BundleInfo
         {
             be u32 nameOffset [[hidden]];
 
-            if (parent.header.flags.HasHuffmanTable)
+            if (parent.header.flags.hasHuffmanTable)
             {
-                std::error("Huffman table is not implemented yet.");
+                u32 bitIndex = nameOffset;
+                str name = fb::BinarySuperBundleToc::DecodeHuffmanString(bitIndex);
+
+                HuffmanStringHelper helper [[name("name")]];
             }
             else
             {
                 char name[] @ addressof(parent.header) + parent.header.pStringTable + nameOffset;
             }
 
-            be u32 bundleSize;
+            be FlagAndSize bundleSize;
             be u64 bundleOffset;
         };
 
@@ -82,10 +132,15 @@ namespace fb
             installChunkIndex : 8;
         };
 
+        fn format_flag_index(u32 flagAndIndex)
+        {
+            return std::format("{{ flag({}) | index({}) }}", (flagAndIndex >> 24) & 0xFF, flagAndIndex & 0x00FFFFFF);
+        };
+
         struct ChunkInfo
         {
             fb::GUID chunkId;
-            be u32 flagAndIndex;
+            be u32 flagAndIndex [[format("fb::BinarySuperBundleToc::format_flag_index")]];
 
             u32 dataIndex = flagAndIndex & 0x00FFFFFF;
             CasRef casRef @ addressof(parent.header) + parent.header.pChunkData + sizeof(u32) * (dataIndex + 0);
@@ -99,6 +154,9 @@ namespace fb
         ObfuscationHeader obfsheader;
 
         BinarySuperBundleToc::Header header;
+
+        be u32 huffmanTable[header.huffmanNodeCount] @ addressof(header) + header.phuffmanTable;
+        be u32 stringTable[header.stringCount] @ addressof(header) + header.pStringTable;
 
         be u32 bundleHashMap[header.bundleCount] @ addressof(header) + header.pBundleHashMap;
 
