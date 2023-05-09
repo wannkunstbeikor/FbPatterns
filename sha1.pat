@@ -11,7 +11,7 @@ namespace fb
         u32 c;
         u32 d;
         u32 e;
-    } [[sealed, format("type::impl::format_sha1")]];
+    } [[sealed, format("fb::impl::format_sha1")]];
 
     namespace impl
     {

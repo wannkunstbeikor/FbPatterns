@@ -10,7 +10,7 @@ namespace fb
         u16 b;
         u16 c;
         u8 d[8];
-    } [[sealed, format("type::impl::format_guid")]];
+    } [[sealed, format("fb::impl::format_guid")]];
 
     namespace impl
     {
