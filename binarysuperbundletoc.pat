@@ -3,6 +3,8 @@
 // these files can get really large so we need to increase the limit
 #pragma pattern_limit 0x4000
 
+#include <std/io.pat>
+
 #include <fb/obfsheader.pat>
 #include <fb/guid.pat>
 
@@ -10,12 +12,12 @@ namespace fb
 {
     namespace BinarySuperBundleToc
     {
-        enum Flags : u32
+        bitfield Flags
         {
-            None = 0,
-            HasBaseBundles = 1 << 0,
-            HasBaseChunks = 1 << 1,
-            HasHuffmanTable = 1 << 2
+            unused : 29;
+            bool HasHuffmanTable : 1;
+            bool HasBaseChunks : 1;
+            bool HasBaseBundles : 1;
         };
 
         struct Header
@@ -39,13 +41,34 @@ namespace fb
             be u32 chunkDataCount;
 
             be Flags flags;
+
+            if (flags.HasHuffmanTable)
+            {
+                // newer games use a huffman table to compress the strings
+                be u32 stringCount;
+                be u32 huffmanNodeCount;
+                be u32 phuffmanTable;
+            }
+            else
+            {
+                u32 stringCount = 0;
+                u32 huffmanNodeCount = 0;
+                u32 phuffmanTable = 0;
+            }
         };
 
         struct BundleInfo
         {
             be u32 nameOffset [[hidden]];
-            // TODO: huffman table
-            char name[] @ addressof(parent.header) + parent.header.pStringTable + nameOffset;
+
+            if (parent.header.flags.HasHuffmanTable)
+            {
+                std::error("Huffman table is not implemented yet.");
+            }
+            else
+            {
+                char name[] @ addressof(parent.header) + parent.header.pStringTable + nameOffset;
+            }
 
             be u32 bundleSize;
             be u64 bundleOffset;
