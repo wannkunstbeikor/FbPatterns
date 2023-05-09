@@ -75,7 +75,7 @@ namespace fb
             (Type::Object):
             {
                 type::uLEB128 size [[hidden]];
-                DbObjectElement value[while($ < addressof(size) + sizeof(size) + size)] [[inline]];
+                DbObjectElement value[while($ < addressof(size) + sizeof(size) + size)] [[name(name)]];
             }
             (Type::Boolean): bool value [[name(name)]];
             (Type::String):
