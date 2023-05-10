@@ -125,8 +125,8 @@ namespace fb
         {
             unused : 8;
             bool isPatch : 8;
-            casIndex : 8;
             installChunkIndex : 8;
+            casIndex : 8;
         };
 
         fn format_flag_index(u32 flagAndIndex)
