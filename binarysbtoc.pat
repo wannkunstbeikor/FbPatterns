@@ -32,8 +32,8 @@ namespace fb
             be u32 chunkCount;
 
             // probably sth crypto related not used in any of the released games using this format
-            u32;
-            u32;
+            be u32;
+            be u32;
 
             be u32 pStringTable;
 
@@ -88,7 +88,7 @@ namespace fb
         struct HuffmanStringHelper<auto value>
         {
             str string = value;
-        } [[format("fb::BinarySuperBundleToc::format_huffman_string_helper")]];
+        } [[sealed, format("fb::BinarySuperBundleToc::format_huffman_string_helper")]];
 
         fn format_huffman_string_helper(ref auto helper)
         {
