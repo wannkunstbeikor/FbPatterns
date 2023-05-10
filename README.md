@@ -20,8 +20,6 @@ fb::ObfuscatedDbObject object @0;
 ```
 ## BinarySuperBundleToc
 Used for SuperBundle toc files in games since ca. 2017.
-
-`Note: Huffman encoded strings do not display properly in the Pattern Data view`
 ```
 #include <fb/binarysbtoc.pat>
 

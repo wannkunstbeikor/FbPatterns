@@ -32,8 +32,8 @@ namespace fb
             be u32 chunkCount;
 
             // probably sth crypto related not used in any of the released games using this format
-            be u32 pUnk1;
-            be u32 pUnk2;
+            u32;
+            u32;
 
             be u32 pStringTable;
 
@@ -85,16 +85,14 @@ namespace fb
             return name;
         };
 
-        struct HuffmanStringHelper
+        struct HuffmanStringHelper<auto value>
         {
-            std::print("{}", parent.name);
-            str name = parent.name;
-        } [[format_read("fb::BinarySuperBundleToc::format_huffman_string_helper")]];
+            str string = value;
+        } [[format("fb::BinarySuperBundleToc::format_huffman_string_helper")]];
 
-        fn format_huffman_string_helper(ref HuffmanStringHelper helper)
+        fn format_huffman_string_helper(ref auto helper)
         {
-            // TODO: this cant find the variable for some reason
-            return helper.name;
+            return helper.string;
         };
 
         bitfield FlagAndSize
@@ -110,10 +108,9 @@ namespace fb
 
             if (parent.header.flags.hasHuffmanTable)
             {
-                u32 bitIndex = nameOffset;
-                str name = fb::BinarySuperBundleToc::DecodeHuffmanString(bitIndex);
+                str name = fb::BinarySuperBundleToc::DecodeHuffmanString(nameOffset);
 
-                HuffmanStringHelper helper [[name("name")]];
+                HuffmanStringHelper<name> helper [[name("name")]];
             }
             else
             {
@@ -139,8 +136,8 @@ namespace fb
 
         struct ChunkInfo
         {
-            fb::GUID chunkId;
-            be u32 flagAndIndex [[format("fb::BinarySuperBundleToc::format_flag_index")]];
+            fb::GUID chunkId; // this guid is stored reversed for some reason, so d[7], d[6], d[5], d[4], d[3], d[2], d[1], d[0], be c, be b, be a
+            be u32 flagAndIndex [[format("fb::BinarySuperBundleToc::format_flag_index")]]; // flag is 1 in all released games
 
             u32 dataIndex = flagAndIndex & 0x00FFFFFF;
             CasRef casRef @ addressof(parent.header) + parent.header.pChunkData + sizeof(u32) * (dataIndex + 0);
